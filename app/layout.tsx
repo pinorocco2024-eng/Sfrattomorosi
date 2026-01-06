@@ -2,7 +2,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import "./globals.css";
-import Chatbase from "../components/chatbase";
+import Chatbase from "@/components/chatbase";
 
 const SITE_NAME = "Sfratto Morosi";
 
