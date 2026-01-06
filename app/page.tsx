@@ -641,7 +641,54 @@ export default function Page() {
     </section>
   );
 
-  const Contatti = () => (
+  const Contatti = () => {
+  const [form, setForm] = useState({
+    nome: "",
+    cognome: "",
+    email: "",
+    telefono: "",
+    messaggio: "",
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [ok, setOk] = useState<null | boolean>(null);
+  const [error, setError] = useState<string>("");
+
+  const onChange =
+    (key: keyof typeof form) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setForm((p) => ({ ...p, [key]: e.target.value }));
+    };
+
+  const submit = async () => {
+    setLoading(true);
+    setOk(null);
+    setError("");
+
+    try {
+      const res = await fetch("/api/contatti", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || "Invio fallito");
+      }
+
+      setOk(true);
+      setForm({ nome: "", cognome: "", email: "", telefono: "", messaggio: "" });
+    } catch (e: any) {
+      setOk(false);
+      setError(e?.message || "Errore");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
     <section id="contatti" className="max-w-4xl mx-auto px-6 md:px-10 py-36">
       <motion.div
         initial={{ opacity: 0, y: 30 }}
@@ -656,30 +703,55 @@ export default function Page() {
 
         <div className="grid md:grid-cols-2 gap-6">
           <input
+            value={form.nome}
+            onChange={onChange("nome")}
             placeholder="Nome"
             className="bg-white/10 rounded-xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-[#C5A14A]/40"
           />
           <input
+            value={form.cognome}
+            onChange={onChange("cognome")}
             placeholder="Cognome"
             className="bg-white/10 rounded-xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-[#C5A14A]/40"
           />
           <input
+            value={form.email}
+            onChange={onChange("email")}
             placeholder="Email"
             className="bg-white/10 rounded-xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-[#C5A14A]/40"
           />
           <input
+            value={form.telefono}
+            onChange={onChange("telefono")}
             placeholder="Telefono"
             className="bg-white/10 rounded-xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-[#C5A14A]/40"
           />
           <textarea
+            value={form.messaggio}
+            onChange={onChange("messaggio")}
             placeholder="Descrizione della situazione (es. mensilità arretrate, tipo immobile, città)"
             className="md:col-span-2 bg-white/10 rounded-xl px-5 py-4 h-32 focus:outline-none focus:ring-2 focus:ring-[#C5A14A]/40"
           />
         </div>
 
-        <GlowButton variant="primary" onClick={() => {}} className="mt-10 w-full">
-          Invia richiesta
+        <GlowButton
+          variant="primary"
+          onClick={submit}
+          className={`mt-10 w-full ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
+        >
+          {loading ? "Invio..." : "Invia richiesta"}
         </GlowButton>
+
+        {ok === true && (
+          <p className="mt-4 text-center text-sm text-white/80">
+            ✅ Richiesta inviata! Ti ricontatteremo al più presto.
+          </p>
+        )}
+        {ok === false && (
+          <p className="mt-4 text-center text-sm text-red-300">
+            ❌ {error || "Errore durante l’invio."}
+          </p>
+        )}
 
         <p className="mt-6 text-center text-white/40 text-xs">
           Le informazioni qui presenti hanno finalità informativa e non sostituiscono una consulenza legale.
@@ -687,6 +759,8 @@ export default function Page() {
       </motion.div>
     </section>
   );
+};
+
 
   const Nav = () => (
     <nav className="hidden md:flex gap-8 text-sm text-white/70">
