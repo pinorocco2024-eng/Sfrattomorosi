@@ -1,6 +1,18 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
+/* Base: identico feeling Canvas */
 html,
 body {
   height: 100%;
 }
+
+body {
+  background: #0A1831;
+  color: white;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}   
