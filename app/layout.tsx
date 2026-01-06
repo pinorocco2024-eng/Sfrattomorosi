@@ -1,21 +1,16 @@
-// app/layout.tsx
-import type { Metadata } from "next";
 import "./globals.css";
-import ChatbaseWidget from "@/components/ChatbaseWidget";
+import type { Metadata } from "next";
+import { siteMetadata } from "@/lib/seo";
 
-
-export const metadata: Metadata = {
+export const metadata: Metadata = siteMetadata({
   title: "Sfratto Morosi",
-  description: "Recupero crediti e sfratto morosi",
-};
+  pathname: "/"
+});
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="it">
-      <body>
-        {children}
-        <ChatbaseWidget />
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
