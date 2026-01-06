@@ -1,81 +1,59 @@
+import { Resend } from "resend";
+import { INVARIANTS } from "@/lib/invariants";
+
 export type LeadPayload = {
-  nome?: string;
-  cognome?: string;
-  email?: string;
-  telefono?: string;
+  nome: string;
+  cognome: string;
+  email: string;
+  telefono: string;
   messaggio?: string;
-
-  // opzionali usati nel preventivo / form
-  citta?: string;
-  immobile?: string;
-  mensilita?: string;
-
-  // honeypot fields (se li usi)
-  company?: string;
-  website?: string;
+  source?: string;
+  pathname?: string;
 };
 
-type ValidateOk = { ok: true; data: LeadPayload };
-type ValidateKo = { ok: false; errors: string[] };
-export type ValidateLeadResult = ValidateOk | ValidateKo;
+export type ValidateOk = {
+  ok: true;
+  data: LeadPayload;
+};
 
-function isNonEmptyString(v: unknown) {
-  return typeof v === "string" && v.trim().length > 0;
+export type ValidateError = {
+  ok: false;
+  errors: string[];
+};
+
+export type ValidateLeadResult = ValidateOk | ValidateError;
+
+function isEmailLike(v: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 }
 
-function cleanStr(v: unknown) {
-  if (typeof v !== "string") return undefined;
-  const s = v.trim();
-  return s.length ? s : undefined;
+function onlyDigits(v: string) {
+  return v.replace(/[^\d+]/g, "").trim();
 }
 
-function cleanPhone(v: unknown) {
-  const s = cleanStr(v);
-  if (!s) return undefined;
-
-  // lascia + e numeri, elimina spazi e separatori
-  const normalized = s.replace(/[^\d+]/g, "");
-  return normalized.length ? normalized : undefined;
-}
-
-function cleanEmail(v: unknown) {
-  const s = cleanStr(v);
-  if (!s) return undefined;
-
-  // check semplice (non RFC completa, ma ok per form)
-  const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
-  return ok ? s : undefined;
-}
-
-export function validateLead(input: Partial<LeadPayload>): ValidateLeadResult {
+export function validateLead(input: unknown): ValidateLeadResult {
   const errors: string[] = [];
 
-  const nome = cleanStr(input.nome);
-  const cognome = cleanStr(input.cognome);
-  const email = cleanEmail(input.email);
-  const telefono = cleanPhone(input.telefono);
-  const messaggio = cleanStr(input.messaggio);
-
-  const citta = cleanStr(input.citta);
-  const immobile = cleanStr(input.immobile);
-  const mensilita = cleanStr(input.mensilita);
-
-  // regole minime: serve almeno un contatto (email o telefono)
-  if (!email && !telefono) errors.push("Inserisci almeno email o telefono.");
-
-  // nome/cognome facoltativi ma consigliati
-  // se vuoi renderli obbligatori, togli il commento:
-  // if (!nome) errors.push("Nome obbligatorio.");
-  // if (!cognome) errors.push("Cognome obbligatorio.");
-
-  // messaggio facoltativo, ma se presente deve avere un minimo
-  if (isNonEmptyString(messaggio) && messaggio.length < 8) {
-    errors.push("Il messaggio è troppo corto.");
+  if (!input || typeof input !== "object") {
+    return { ok: false, errors: ["Payload non valido."] };
   }
 
-  if (errors.length > 0) {
-    return { ok: false, errors };
-  }
+  const obj = input as Partial<LeadPayload>;
+
+  const nome = (obj.nome ?? "").trim();
+  const cognome = (obj.cognome ?? "").trim();
+  const email = (obj.email ?? "").trim();
+  const telefono = onlyDigits(obj.telefono ?? "");
+  const messaggio = (obj.messaggio ?? "").trim();
+  const source = (obj.source ?? "").trim();
+  const pathname = (obj.pathname ?? "").trim();
+
+  if (nome.length < 2) errors.push("Nome obbligatorio.");
+  if (cognome.length < 2) errors.push("Cognome obbligatorio.");
+  if (!isEmailLike(email)) errors.push("Email non valida.");
+  if (telefono.length < 6) errors.push("Telefono non valido.");
+
+  if (errors.length > 0) return { ok: false, errors };
 
   return {
     ok: true,
@@ -84,13 +62,44 @@ export function validateLead(input: Partial<LeadPayload>): ValidateLeadResult {
       cognome,
       email,
       telefono,
-      messaggio,
-      citta,
-      immobile,
-      mensilita,
-      // honeypot: lo teniamo comunque per compatibilità
-      company: cleanStr((input as any).company),
-      website: cleanStr((input as any).website),
-    },
+      messaggio: messaggio || undefined,
+      source: source || undefined,
+      pathname: pathname || undefined
+    }
   };
+}
+
+export async function sendLeadEmail(lead: LeadPayload) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    throw new Error("RESEND_API_KEY non impostata.");
+  }
+
+  const to = process.env.LEADS_TO_EMAIL || INVARIANTS.email;
+  const from = process.env.LEADS_FROM_EMAIL || "Sfratto Morosi <onboarding@resend.dev>";
+
+  const resend = new Resend(apiKey);
+
+  const subject = `Nuovo lead — ${lead.nome} ${lead.cognome}`;
+  const lines: string[] = [];
+
+  lines.push(`Nome: ${lead.nome}`);
+  lines.push(`Cognome: ${lead.cognome}`);
+  lines.push(`Email: ${lead.email}`);
+  lines.push(`Telefono: ${lead.telefono}`);
+  if (lead.pathname) lines.push(`Pagina: ${lead.pathname}`);
+  if (lead.source) lines.push(`Fonte: ${lead.source}`);
+  if (lead.messaggio) lines.push(`Messaggio: ${lead.messaggio}`);
+
+  const text = lines.join("\n");
+
+  const result = await resend.emails.send({
+    from,
+    to,
+    replyTo: lead.email,
+    subject,
+    text
+  });
+
+  return result;
 }

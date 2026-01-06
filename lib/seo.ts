@@ -1,50 +1,44 @@
 import type { Metadata } from "next";
-import { INVARIANTS } from "./invariants";
+import { INVARIANTS } from "@/lib/invariants";
 
-type SiteMetadataInput = {
+type SiteMetadataArgs = {
   title?: string;
   description?: string;
-  pathname?: string;
+  pathname?: string; // "/"
 };
 
-const siteUrl = "https://sfrattomorosi.it";
-
-export const siteTitle = INVARIANTS.brand;
-
-export function absoluteUrl(pathname = "/") {
-  const clean = pathname.startsWith("/") ? pathname : `/${pathname}`;
-  return `${siteUrl}${clean}`;
+function absoluteUrl(pathname: string) {
+  const base = "https://sfrattomorosi.it";
+  const p = pathname.startsWith("/") ? pathname : `/${pathname}`;
+  return `${base}${p === "/" ? "" : p}`;
 }
 
-export function siteMetadata(input: SiteMetadataInput = {}): Metadata {
-  const title = input.title ?? siteTitle;
+export function siteMetadata(args: SiteMetadataArgs = {}): Metadata {
+  const title = args.title ?? INVARIANTS.brand;
   const description =
-    input.description ??
-    "Avvocato per sfratto per morosità: consulenza, procedura completa, tempi e costi indicativi, supporto per gestione locazioni.";
+    args.description ??
+    "Avvocato per sfratto per morosità: procedura completa, costi chiari e tempi indicativi. Consulenza gratuita.";
 
-  const url = absoluteUrl(input.pathname ?? "/");
+  const url = absoluteUrl(args.pathname ?? "/");
 
   return {
     title,
     description,
-    metadataBase: new URL(siteUrl),
-    alternates: { canonical: url },
+    metadataBase: new URL("https://sfrattomorosi.it"),
+    alternates: {
+      canonical: url
+    },
     openGraph: {
       type: "website",
-      locale: "it_IT",
       url,
       title,
       description,
-      siteName: INVARIANTS.brand,
+      siteName: INVARIANTS.brand
     },
     twitter: {
       card: "summary_large_image",
       title,
-      description,
-    },
-    robots: {
-      index: true,
-      follow: true,
-    },
+      description
+    }
   };
 }
