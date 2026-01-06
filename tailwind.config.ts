@@ -1,9 +1,16 @@
 import type { Config } from "tailwindcss";
 
-export default {
-  content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./lib/**/*.{ts,tsx}"],
+const config: Config = {
+  content: [
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./lib/**/*.{js,ts,jsx,tsx,mdx}",
+    "./sfratto-morosi/**/*.{js,ts,jsx,tsx,mdx}" // ✅ IMPORTANTISSIMO: qui sta il Canvas/Preview
+  ],
   theme: {
-    extend: {},
+    extend: {}
   },
-  plugins: [],
-} satisfies Config;
+  plugins: []
+};
+
+export default config;
