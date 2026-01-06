@@ -1127,13 +1127,6 @@ export default function Page() {
       <div className="pt-0">
         <View />
       </div>
-
-      <footer className="border-t border-white/10 py-12 px-6 md:px-10 text-sm text-white/60">
-        <div className="max-w-7xl mx-auto text-center">
-          <p>Telefono: {INVARIANTS.phone}</p>
-          <p>Email: {INVARIANTS.email}</p>
-        </div>
-      </footer>
     </div>
   );
 }
