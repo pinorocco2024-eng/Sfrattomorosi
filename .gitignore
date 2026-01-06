@@ -5,6 +5,9 @@ node_modules/
 .next/
 out/
 
+# typescript
+tsconfig.tsbuildinfo
+
 # env
 .env
 .env.local
@@ -13,7 +16,7 @@ out/
 # logs
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
 
 # OS
 .DS_Store
+sfratto-morosi/

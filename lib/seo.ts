@@ -1,25 +1,15 @@
-import type { Metadata } from "next";
 import { INVARIANTS } from "@/lib/invariants";
 
-export function siteMetadata(partial?: Partial<Metadata>): Metadata {
-  const title = partial?.title ?? INVARIANTS.brand;
-  const description =
-    partial?.description ??
-    "Avvocato per sfratto per morosità: gestione completa, trasparenza su costi e tempi, consulenza gratuita.";
+export function siteTitle(page?: string) {
+  const base = INVARIANTS.brand;
+  return page ? `${page} | ${base}` : base;
+}
 
-  return {
-    title,
-    description,
-    metadataBase: new URL("https://sfrattomorosi.it"),
-    alternates: { canonical: partial?.alternates?.canonical ?? "/" },
-    openGraph: {
-      title: typeof title === "string" ? title : INVARIANTS.brand,
-      description,
-      url: "/",
-      siteName: INVARIANTS.brand,
-      type: "website",
-    },
-    robots: { index: true, follow: true },
-    ...partial,
-  };
+export function siteDescription() {
+  return "Avvocato per sfratto per morosità: tempi, costi e gestione completa della procedura. Consulenza gratuita.";
+}
+
+export function canonical(pathname: string) {
+  const p = pathname?.startsWith("/") ? pathname : `/${pathname || ""}`;
+  return `https://sfrattomorosi.it${p}`;
 }
