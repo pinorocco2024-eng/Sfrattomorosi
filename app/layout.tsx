@@ -1,7 +1,8 @@
 // app/layout.tsx
 import type { Metadata } from "next";
 import "./globals.css";
-import ChatbaseWidget from 'ChatbaseWidget';
+import ChatbaseWidget from "@/components/ChatbaseWidget";
+
 
 export const metadata: Metadata = {
   title: "Sfratto Morosi",
