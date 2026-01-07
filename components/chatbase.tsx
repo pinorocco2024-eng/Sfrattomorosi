@@ -8,7 +8,7 @@ export default function Chatbase() {
       <Script id="chatbase-config" strategy="afterInteractive">
         {`
           window.embeddedChatbotConfig = {
-            chatbotId: "Ov9NcGjN69XIUDU_0dZLR",
+            chatbotId: "8UXbepEy4Bk6zAqqrGeVs",
             domain: "www.chatbase.co"
           };
         `}
