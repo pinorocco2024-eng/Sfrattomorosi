@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useInView } from "framer-motion";
-
+import ChatBaseWidget from "@/components/ChatBaseWidget";
 /**
  * Lightweight runtime “tests” for this preview.
  * In Canvas we don’t have a full test runner, so we use console assertions.
@@ -1201,6 +1201,7 @@ export default function Page() {
       <div className="pt-0">
         <View />
       </div>
+      <ChatBaseWidget />
     </div>
   );
 }

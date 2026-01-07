@@ -1,98 +1,87 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 
-export const runtime = "nodejs"; // importante: Resend non gira su Edge
-
-type Body = {
-  nome: string;
-  cognome: string;
-  email: string;
-  telefono: string;
-  messaggio: string;
-};
-
-function esc(s: string) {
-  return (s || "").replace(/[<>]/g, "");
-}
-
 export async function POST(req: Request) {
-  try {
-    const resendKey = process.env.RESEND_API_KEY;
-    const toEmail = process.env.CONTACT_TO_EMAIL;
-    const fromEmail = process.env.CONTACT_FROM_EMAIL;
+  const RESEND_API_KEY = process.env.RESEND_API_KEY;
+  const TO = process.env.CONTACT_TO_EMAIL;
+  const FROM = process.env.RESEND_FROM;
 
-    if (!resendKey || !toEmail || !fromEmail) {
-      return NextResponse.json(
-        { ok: false, error: "Server misconfigured: missing env vars" },
-        { status: 500 }
-      );
-    }
-
-    const body = (await req.json()) as Partial<Body>;
-
-    const nome = (body.nome || "").trim();
-    const cognome = (body.cognome || "").trim();
-    const email = (body.email || "").trim();
-    const telefono = (body.telefono || "").trim();
-    const messaggio = (body.messaggio || "").trim();
-
-    // Validazione minimale
-    if (!nome || !cognome || !email || !telefono) {
-      return NextResponse.json(
-        { ok: false, error: "Compila tutti i campi obbligatori." },
-        { status: 400 }
-      );
-    }
-    if (!email.includes("@")) {
-      return NextResponse.json({ ok: false, error: "Email non valida." }, { status: 400 });
-    }
-
-    const resend = new Resend(resendKey);
-
-    const subject = `Nuova richiesta consulenza: ${nome} ${cognome}`;
-
-    const text = `Nuova richiesta consulenza
-
-Nome: ${nome}
-Cognome: ${cognome}
-Email: ${email}
-Telefono: ${telefono}
-
-Messaggio:
-${messaggio || "(nessun messaggio)"}
-`;
-
-    const html = `
-      <div style="font-family: Arial, sans-serif; line-height: 1.5">
-        <h2>Nuova richiesta consulenza</h2>
-        <p><strong>Nome:</strong> ${esc(nome)}</p>
-        <p><strong>Cognome:</strong> ${esc(cognome)}</p>
-        <p><strong>Email:</strong> ${esc(email)}</p>
-        <p><strong>Telefono:</strong> ${esc(telefono)}</p>
-        <hr />
-        <p><strong>Messaggio:</strong></p>
-        <p>${esc(messaggio || "(nessun messaggio)").replace(/\n/g, "<br/>")}</p>
-      </div>
-    `;
-
-    const { error } = await resend.emails.send({
-      from: fromEmail,
-      to: [toEmail],
-      replyTo: email, // così rispondi direttamente al cliente
-      subject,
-      text,
-      html,
-    });
-
-    if (error) {
-      return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ ok: true });
-  } catch (e: any) {
+  if (!RESEND_API_KEY || !TO || !FROM) {
     return NextResponse.json(
-      { ok: false, error: e?.message || "Errore sconosciuto" },
+      {
+        ok: false,
+        error:
+          "Server misconfigured: missing env vars (RESEND_API_KEY, CONTACT_TO_EMAIL, RESEND_FROM)",
+      },
       { status: 500 }
     );
   }
+
+  const resend = new Resend(RESEND_API_KEY);
+
+  let body: any;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ ok: false, error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const nome = String(body?.nome || "").trim();
+  const cognome = String(body?.cognome || "").trim();
+  const email = String(body?.email || "").trim();
+  const telefono = String(body?.telefono || "").trim();
+  const messaggio = String(body?.messaggio || "").trim();
+
+  if (!nome || !cognome || !email || !telefono) {
+    return NextResponse.json(
+      { ok: false, error: "Missing required fields (nome, cognome, email, telefono)" },
+      { status: 400 }
+    );
+  }
+
+  try {
+    // Resend send example is via resend.emails.send(...) :contentReference[oaicite:0]{index=0}
+    const { data, error } = await resend.emails.send({
+      from: FROM,
+      to: [TO],
+      subject: `Nuova richiesta - ${nome} ${cognome}`,
+      replyTo: email,
+      text: [
+        "Nuova richiesta dal sito:",
+        "",
+        `Nome: ${nome}`,
+        `Cognome: ${cognome}`,
+        `Email: ${email}`,
+        `Telefono: ${telefono}`,
+        `Messaggio: ${messaggio || "-"}`,
+      ].join("\n"),
+      html: `
+        <div style="font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; line-height:1.5">
+          <h2>Nuova richiesta dal sito</h2>
+          <p><b>Nome:</b> ${escapeHtml(nome)}</p>
+          <p><b>Cognome:</b> ${escapeHtml(cognome)}</p>
+          <p><b>Email:</b> ${escapeHtml(email)}</p>
+          <p><b>Telefono:</b> ${escapeHtml(telefono)}</p>
+          <p><b>Messaggio:</b><br/>${escapeHtml(messaggio || "-").replace(/\n/g, "<br/>")}</p>
+        </div>
+      `,
+    });
+
+    if (error) {
+      return NextResponse.json({ ok: false, error }, { status: 502 });
+    }
+
+    return NextResponse.json({ ok: true, id: data?.id ?? null });
+  } catch (e: any) {
+    return NextResponse.json({ ok: false, error: e?.message || "Send failed" }, { status: 500 });
+  }
+}
+
+function escapeHtml(s: string) {
+  return s
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
